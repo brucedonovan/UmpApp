@@ -20,7 +20,7 @@ struct ContentView: View {
                 .tag(2)
         }
         .tabViewStyle(PageTabViewStyle())
-        .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
+        .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .automatic))
     }
 }
 

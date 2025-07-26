@@ -1,5 +1,11 @@
+//
+//  UmpAppApp.swift
+//  UmpApp
+//
+//  Created by Bruce Donovan on 26/07/2025.
+//
+
 import SwiftUI
-import UmpAppCore
 
 @main
 struct UmpAppApp: App {
