@@ -1,0 +1,91 @@
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+/*.gcno
+**/xcshareddata/WorkspaceSettings.xcsettings
+
+# User settings
+xcuserdata/
+
+# Compatibility with Xcode 8 and earlier
+*.xcscmblueprint
+*.xccheckout
+
+# Compatibility with Xcode 9.3
+*.xcuserstate
+
+# Compatibility with Xcode 10.0
+/*.gcda
+
+# Swift Package Manager
+/.build
+/Packages
+/*.xcodeproj
+xcuserdata/
+DerivedData/
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.swiftpm/config/registries.json
+.swiftpm/security/registries.json
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# VS Code
+.vscode/settings.json
+
+# Debug files
+*.dSYM/
+*.dSYM.zip
+
+# Temporary files
+*.tmp
+*.temp
+
+# Demo and test files
+*Demo.swift
+*Standalone.swift
+demo.swift
+*_Playground.playground

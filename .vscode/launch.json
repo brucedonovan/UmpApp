@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Open Xcode Project",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}",
+            "preLaunchTask": "Build UmpApp",
+            "console": "integratedTerminal",
+            "stopOnEntry": false
+        }
+    ]
+}

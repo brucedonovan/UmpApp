@@ -1,0 +1,73 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build UmpApp Core",
+			"type": "shell",
+			"command": "swift",
+			"args": [
+				"build"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$gcc"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Test UmpApp Core",
+			"type": "shell",
+			"command": "swift",
+			"args": [
+				"test"
+			],
+			"group": "test",
+			"problemMatcher": [
+				"$gcc"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Clean Build",
+			"type": "shell",
+			"command": "swift",
+			"args": [
+				"package",
+				"clean"
+			],
+			"group": "build",
+			"isBackground": false
+		},
+		{
+			"label": "Open in Xcode",
+			"type": "shell",
+			"command": "open",
+			"args": [
+				"Package.swift"
+			],
+			"group": "build",
+			"isBackground": false
+		},
+		{
+			"label": "Run Cricket Demo",
+			"type": "shell",
+			"command": "swift",
+			"args": [
+				"demo.swift"
+			],
+			"group": "build",
+			"isBackground": false
+		},
+		{
+			"label": "Open iOS Simulator",
+			"type": "shell",
+			"command": "open",
+			"args": [
+				"-a",
+				"Simulator"
+			],
+			"group": "build",
+			"isBackground": true
+		}
+	]
+}
