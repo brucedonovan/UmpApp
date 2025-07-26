@@ -20,11 +20,20 @@ public class CricketGameModel: ObservableObject {
     @Published public var ballHistory: [Ball] = []
     @Published public var maxBallsPerOver: Int = 6
     @Published public var isOverComplete: Bool = false
-    
+    @Published public var wickets: Int = 0
+
     // Current ball being tracked
     @Published public var currentBall: Ball = Ball()
-    
+
+    // Simulate other team score for demo (replace with real logic as needed)
+    public var otherTeamScore: Int? = 123 // Replace with real value if available
+
     public init() {}
+    public func addWicket() {
+        if wickets < 10 {
+            wickets += 1
+        }
+    }
     
     public var ballsRemaining: Int {
         maxBallsPerOver - ballsInCurrentOver
