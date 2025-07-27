@@ -35,11 +35,11 @@ struct MatchInfoView: View {
 
 struct ContentView: View {
     @StateObject private var gameModel = CricketGameModel()
-    @State private var selectedOption: ScoringOption? = nil
+    // Removed unused selectedOption
     @State private var showInfo = false
     var body: some View {
         TabView {
-            MainScoringView(gameModel: gameModel, selectedOption: $selectedOption)
+            MainScoringView(gameModel: gameModel)
                 .tag(0)
             MatchInfoView(gameModel: gameModel)
                 .tag(1)
@@ -100,9 +100,19 @@ struct ContentView: View {
     
     struct MainScoringView: View {
         @ObservedObject var gameModel: CricketGameModel
-        @Binding var selectedOption: ScoringOption?
-        
+        // Remove selectedOption, use new selection states:
+        @State private var selectedRuns: Int? = nil // e.g. 0,1,2,3,4,5,6,7
+        @State private var selectedExtra: ExtraType? = nil // .noBall, .wide, .bye, .legBye
         @State private var showMoreSheet = false
+        
+        enum ExtraType: String, CaseIterable, Identifiable {
+            case noBall = "No Ball"
+            case wide = "Wide"
+            case bye = "Bye"
+            case legBye = "Leg Bye"
+            var id: String { rawValue }
+        }
+        
         var body: some View {
             VStack(spacing: 8) {
                 // Score-Wickets (e.g., 120-2) with overs in brackets (e.g., 120-2 (3.5))
@@ -115,51 +125,53 @@ struct ContentView: View {
                         .foregroundColor(.yellow)
                 }
                 .padding(.top, 8)
-                
-                // Scoring options grid
+
+                // Runs grid (0,1,2,3,4,5,6,7)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    ForEach([ScoringOption.dot, .one, .two, .four], id: \.self) { option in
-                        OptionButton(option: option, selectedOption: $selectedOption)
+                    ForEach([0,1,2,3], id: \ .self) { run in
+                        RunButton(run: run, selectedRuns: $selectedRuns)
                     }
                 }
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    OptionButton(option: .noBall, selectedOption: $selectedOption)
-                    OptionButton(option: .wide, selectedOption: $selectedOption)
-                    Button(action: { showMoreSheet = true }) {
-                        Text("More")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, minHeight: 40)
-                            .background(selectedOption == .more ? Color.blue : Color.gray.opacity(0.3))
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach([4,5,6,7], id: \ .self) { run in
+                        RunButton(run: run, selectedRuns: $selectedRuns)
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
+
+                // Extras row (No Ball, Wide, Byes, Leg Byes)
+                HStack(spacing: 8) {
+                    ExtraButton(extra: .noBall, selectedExtra: $selectedExtra)
+                    ExtraButton(extra: .wide, selectedExtra: $selectedExtra)
+                    ExtraButton(extra: .bye, selectedExtra: $selectedExtra)
+                    ExtraButton(extra: .legBye, selectedExtra: $selectedExtra)
+                }
+
                 HStack(spacing: 32) {
-                    // Wicket button (smaller)
-                    Button(action: { selectedOption = .wicket }) {
+                    // Wicket button (separate, not combinable)
+                    Button(action: {
+                        handleWicket()
+                        clearSelections()
+                    }) {
                         Text("W")
                             .font(.headline)
                             .fontWeight(.bold)
-                            .foregroundColor(selectedOption == .wicket ? .yellow : .white)
+                            .foregroundColor(.white)
                             .frame(width: 22, height: 22)
                             .background(Color.gray.opacity(0.3))
                             .cornerRadius(6)
                     }
                     // Confirm button
                     Button(action: {
-                        if let option = selectedOption {
-                            handleScoring(option)
-                            selectedOption = nil
-                        }
+                        handleConfirm()
+                        clearSelections()
                     }) {
                         Image(systemName: "checkmark.circle")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 40, height: 40)
-                            .foregroundColor(selectedOption == nil ? .gray : .green)
+                            .foregroundColor((selectedRuns != nil || selectedExtra != nil) ? .green : .gray)
                     }
-                    .disabled(selectedOption == nil)
+                    .disabled(selectedRuns == nil && selectedExtra == nil)
                 }
                 .padding(.top, 8)
                 Spacer()
@@ -167,8 +179,83 @@ struct ContentView: View {
             .padding()
             .background(Color.black)
             .sheet(isPresented: $showMoreSheet) {
-                MoreOptionsSheet(gameModel: gameModel, showSheet: $showMoreSheet)
+                MoreOptionsSheet(selectedRuns: $selectedRuns, selectedExtra: $selectedExtra, showSheet: $showMoreSheet)
             }
+        }
+
+        // MARK: - Button Views
+        struct RunButton: View {
+            let run: Int
+            @Binding var selectedRuns: Int?
+            var body: some View {
+                Button(action: {
+                    selectedRuns = (selectedRuns == run) ? nil : run
+                }) {
+                    Text("\(run)")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .background(selectedRuns == run ? Color.blue : Color.gray.opacity(0.3))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        struct ExtraButton: View {
+            let extra: ExtraType
+            @Binding var selectedExtra: ExtraType?
+            var body: some View {
+                Button(action: {
+                    selectedExtra = (selectedExtra == extra) ? nil : extra
+                }) {
+                    Text(extra.rawValue)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .background(selectedExtra == extra ? Color.purple : Color.gray.opacity(0.3))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+
+        // MARK: - Confirm Logic
+        func handleConfirm() {
+            // Combine run and extra logic
+            if let run = selectedRuns, let extra = selectedExtra {
+                switch extra {
+                case .noBall:
+                    gameModel.addNoBall()
+                    gameModel.addRuns(run)
+                case .wide:
+                    gameModel.addWide()
+                    gameModel.addRuns(run)
+                case .bye:
+                    gameModel.addBye(run)
+                case .legBye:
+                    gameModel.addLegBye(run)
+                }
+            } else if let run = selectedRuns {
+                gameModel.addRuns(run)
+            } else if let extra = selectedExtra {
+                switch extra {
+                case .noBall:
+                    gameModel.addNoBall()
+                case .wide:
+                    gameModel.addWide()
+                case .bye:
+                    gameModel.addBye(1)
+                case .legBye:
+                    gameModel.addLegBye(1)
+                }
+            }
+        }
+        func handleWicket() {
+            gameModel.addWicket()
+        }
+        func clearSelections() {
+            selectedRuns = nil
+            selectedExtra = nil
         }
         
         // ...existing code...
@@ -207,53 +294,54 @@ struct ContentView: View {
         
         // MARK: - MoreOptionsSheet
         struct MoreOptionsSheet: View {
-            @ObservedObject var gameModel: CricketGameModel
+            // Now passes selection bindings to allow selection from More screen
+            @Binding var selectedRuns: Int?
+            @Binding var selectedExtra: ExtraType?
             @Binding var showSheet: Bool
+            // To help Swift type-checker, define the runs array as a property
+            let moreRuns: [Int] = [3, 5, 6, 7]
             var body: some View {
                 VStack(spacing: 8) {
-                    // Score-Wickets (e.g., 123-4 (23.2 overs))
-                    HStack(alignment: VerticalAlignment.firstTextBaseline, spacing: 8) {
-                        Text("\(gameModel.totalRuns)-\(gameModel.wickets)")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                        Text("(\(gameModel.overDisplay) overs)")
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
-                            .foregroundColor(.yellow)
+                    // Top row: 3, 5, 6, 7 runs (selectable)
+                    HStack(spacing: 8) {
+                        ForEach(moreRuns, id: \ .self) { runs in
+                            Button(action: {
+                                selectedRuns = (selectedRuns == runs) ? nil : runs
+                            }) {
+                                Text("\(runs)")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity, minHeight: 40)
+                                    .background(selectedRuns == runs ? Color.blue : Color.clear)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                        }
                     }
-                    .padding(.top, 8)
-                    // Extras
+
+                    // Bottom row: Byes, Leg Byes (selectable as extras)
                     HStack(spacing: 8) {
                         Button(action: {
-                            gameModel.addWide()
-                            showSheet = false
-                        }) {
-                            Text("Wide")
-                                .frame(maxWidth: .infinity, minHeight: 40)
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                        }
-                        Button(action: {
-                            gameModel.addBye(1)
-                            showSheet = false
+                            selectedExtra = (selectedExtra == .bye) ? nil : .bye
                         }) {
                             Text("Byes")
+                                .font(.headline)
                                 .frame(maxWidth: .infinity, minHeight: 40)
-                                .background(Color.purple)
+                                .background(selectedExtra == .bye ? Color.purple : Color.clear)
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
                         Button(action: {
-                            gameModel.addLegBye(1)
-                            showSheet = false
+                            selectedExtra = (selectedExtra == .legBye) ? nil : .legBye
                         }) {
                             Text("Leg Byes")
+                                .font(.headline)
                                 .frame(maxWidth: .infinity, minHeight: 40)
-                                .background(Color.green)
+                                .background(selectedExtra == .legBye ? Color.purple : Color.clear)
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
                     }
+
                     Spacer()
                     Button(action: { showSheet = false }) {
                         Text("Close")
