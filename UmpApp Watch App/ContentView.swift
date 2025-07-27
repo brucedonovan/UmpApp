@@ -104,6 +104,7 @@ struct ContentView: View {
         @State private var selectedRuns: Int? = nil // e.g. 0,1,2,3,4,5,6,7
         @State private var selectedExtra: ExtraType? = nil // .noBall, .wide, .bye, .legBye
         @State private var showMoreSheet = false
+        @State private var selectedWicket: Bool = false
         
         enum ExtraType: String, CaseIterable, Identifiable {
             case noBall = "No Ball"
@@ -126,52 +127,65 @@ struct ContentView: View {
                 }
                 .padding(.top, 8)
 
-                // Runs grid (0,1,2,3,4,5,6,7)
+                // Main runs row (0,1,2,4)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    ForEach([0,1,2,3], id: \ .self) { run in
+                    ForEach([0,1,2,4], id: \Int.self) { run in
                         RunButton(run: run, selectedRuns: $selectedRuns)
                     }
                 }
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    ForEach([4,5,6,7], id: \ .self) { run in
-                        RunButton(run: run, selectedRuns: $selectedRuns)
-                    }
-                }
-
-                // Extras row (No Ball, Wide, Byes, Leg Byes)
-                HStack(spacing: 8) {
+                // Extras row (No Ball, Wide, More)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                     ExtraButton(extra: .noBall, selectedExtra: $selectedExtra)
                     ExtraButton(extra: .wide, selectedExtra: $selectedExtra)
-                    ExtraButton(extra: .bye, selectedExtra: $selectedExtra)
-                    ExtraButton(extra: .legBye, selectedExtra: $selectedExtra)
+                    Button(action: { showMoreSheet = true }) {
+                        Text("More")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 40)
+                            .background(Color.gray.opacity(0.3))
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
 
                 HStack(spacing: 32) {
-                    // Wicket button (separate, not combinable)
+                    // Wicket button (selectable, requires confirm)
                     Button(action: {
-                        handleWicket()
-                        clearSelections()
+                        if selectedWicket {
+                            selectedWicket = false
+                        } else {
+                            selectedWicket = true
+                            // Deselect other options
+                            selectedRuns = nil
+                            selectedExtra = nil
+                        }
                     }) {
                         Text("W")
                             .font(.headline)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(selectedWicket ? .yellow : .white)
                             .frame(width: 22, height: 22)
-                            .background(Color.gray.opacity(0.3))
+                            .background(selectedWicket ? Color.blue : Color.gray.opacity(0.3))
                             .cornerRadius(6)
                     }
-                    // Confirm button
+                    // Confirm button with combined label
                     Button(action: {
                         handleConfirm()
                         clearSelections()
                     }) {
-                        Image(systemName: "checkmark.circle")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 40, height: 40)
-                            .foregroundColor((selectedRuns != nil || selectedExtra != nil) ? .green : .gray)
+                        Text(confirmLabel())
+                            .font(.headline)
+                            .frame(width: 48, height: 48)
+                            .foregroundColor(confirmEnabled() ? .white : .gray)
+                            .background(confirmEnabled() ? Color.green : Color.gray.opacity(0.2))
+                            .cornerRadius(24)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 24)
+                                    .stroke(confirmEnabled() ? Color.green : Color.gray, lineWidth: 2)
+                            )
+                            .shadow(color: confirmEnabled() ? Color.green.opacity(0.4) : .clear, radius: confirmEnabled() ? 6 : 0)
                     }
-                    .disabled(selectedRuns == nil && selectedExtra == nil)
+                    .disabled(!confirmEnabled())
                 }
                 .padding(.top, 8)
                 Spacer()
@@ -181,6 +195,35 @@ struct ContentView: View {
             .sheet(isPresented: $showMoreSheet) {
                 MoreOptionsSheet(selectedRuns: $selectedRuns, selectedExtra: $selectedExtra, showSheet: $showMoreSheet)
             }
+        }
+
+        // Confirm button label logic
+        func confirmLabel() -> String {
+            if selectedWicket {
+                return "W"
+            } else if let run = selectedRuns, let extra = selectedExtra {
+                let runStr = run > 0 ? "\(run)" : ""
+                switch extra {
+                case .noBall: return runStr + "Nb"
+                case .wide: return runStr + "Wd"
+                case .bye: return runStr + "B"
+                case .legBye: return runStr + "LB"
+                }
+            } else if let run = selectedRuns {
+                return "\(run)"
+            } else if let extra = selectedExtra {
+                switch extra {
+                case .noBall: return "Nb"
+                case .wide: return "Wd"
+                case .bye: return "B"
+                case .legBye: return "LB"
+                }
+            }
+            return "✓"
+        }
+
+        func confirmEnabled() -> Bool {
+            return selectedWicket || selectedRuns != nil || selectedExtra != nil
         }
 
         // MARK: - Button Views
@@ -221,20 +264,11 @@ struct ContentView: View {
 
         // MARK: - Confirm Logic
         func handleConfirm() {
-            // Combine run and extra logic
-            if let run = selectedRuns, let extra = selectedExtra {
-                switch extra {
-                case .noBall:
-                    gameModel.addNoBall()
-                    gameModel.addRuns(run)
-                case .wide:
-                    gameModel.addWide()
-                    gameModel.addRuns(run)
-                case .bye:
-                    gameModel.addBye(run)
-                case .legBye:
-                    gameModel.addLegBye(run)
-                }
+            if selectedWicket {
+                gameModel.addWicket()
+            } else if let run = selectedRuns, let extra = selectedExtra {
+                // Only add the run value, not addative for extras
+                gameModel.addRuns(run)
             } else if let run = selectedRuns {
                 gameModel.addRuns(run)
             } else if let extra = selectedExtra {
@@ -250,12 +284,10 @@ struct ContentView: View {
                 }
             }
         }
-        func handleWicket() {
-            gameModel.addWicket()
-        }
         func clearSelections() {
             selectedRuns = nil
             selectedExtra = nil
+            selectedWicket = false
         }
         
         // ...existing code...
@@ -344,9 +376,14 @@ struct ContentView: View {
 
                     Spacer()
                     Button(action: { showSheet = false }) {
-                        Text("Close")
-                            .foregroundColor(.red)
-                            .padding(.bottom, 8)
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.headline)
+                            Text("Back")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.blue)
+                        .padding(.bottom, 8)
                     }
                 }
                 .padding()
