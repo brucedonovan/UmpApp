@@ -219,7 +219,7 @@ struct ContentView: View {
                 case .legBye: return "LB"
                 }
             }
-            return "✓"
+            return "DOT"
         }
 
         func confirmEnabled() -> Bool {
