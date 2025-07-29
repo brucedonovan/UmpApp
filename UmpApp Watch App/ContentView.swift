@@ -127,9 +127,9 @@ struct ContentView: View {
                 }
                 .padding(.top, 8)
 
-                // Main runs row (0,1,2,4)
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    ForEach([0,1,2,4], id: \Int.self) { run in
+                // Main runs row (1,2,4)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach([1,2,4], id: \Int.self) { run in
                         RunButton(run: run, selectedRuns: $selectedRuns)
                     }
                 }
@@ -223,7 +223,7 @@ struct ContentView: View {
         }
 
         func confirmEnabled() -> Bool {
-            return selectedWicket || selectedRuns != nil || selectedExtra != nil
+            return true
         }
 
         // MARK: - Button Views
@@ -282,6 +282,9 @@ struct ContentView: View {
                 case .legBye:
                     gameModel.addLegBye(1)
                 }
+            } else {
+                // No selection: treat as dot ball (0 runs)
+                gameModel.addRuns(0)
             }
         }
         func clearSelections() {
